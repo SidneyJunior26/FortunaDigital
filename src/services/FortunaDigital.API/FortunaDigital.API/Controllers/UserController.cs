@@ -61,7 +61,7 @@ public class UserController : ControllerBase {
         Guid newUserId;
 
         try {
-            var user = _userService.GetIfUserExists(NewUser.Cpf, NewUser.PhoneNumber, NewUser.Email);
+            var user = await _userService.GetIfUserExists(NewUser.Cpf, NewUser.PhoneNumber, NewUser.Email);
 
             if (user != null) {
                 _logger.LogWarning($"Usuário já cadastrado com mesmo CPF {NewUser.Cpf} ou Telefone {NewUser.PhoneNumber} ou Email {NewUser.Email}");
@@ -114,7 +114,10 @@ public class UserController : ControllerBase {
 
         try {
             user = await _userService.GetUserById(UserId);
-        } catch (Exception ex) {
+
+            if (user == null) 
+                return NotFound(new ErrorViewModel("Nenhum usuário com este ID encontrado", UserId.ToString()));
+            } catch (Exception ex) {
             _logger.LogError($"Ocorreu um erro ao tentar consultar o usuário com ID '{UserId}' - {ex.Message}");
 
             return BadRequest(new ErrorViewModel("Ocorreu um erro ao consultar o usuário.", ex.Message));
@@ -145,8 +148,8 @@ public class UserController : ControllerBase {
         }
 
         if (String.IsNullOrEmpty(token))
-            return BadRequest(new ErrorViewModel("\"Suas informações de login são inválidas. Verifique seu CPF e senha.", ""));
+            return BadRequest(new ErrorViewModel("Suas informações de login são inválidas. Verifique seu CPF e senha.", ""));
 
-        return Ok(new { token = token });
+        return Ok(token);
     }
 }

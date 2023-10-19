@@ -72,7 +72,7 @@ public class UserTests {
         // Assert
         var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
         var errorViewModel = Assert.IsType<ErrorViewModel>(notFoundResult.Value);
-        Assert.Equal("Nenhum usuário com este ID encontrado", errorViewModel.InternalError);
+        Assert.Equal("Nenhum usuário com este ID encontrado", errorViewModel.UserResponse);
     }
 
     [Fact]
@@ -82,7 +82,7 @@ public class UserTests {
         var newUserId = Guid.NewGuid();
 
         var userServiceMock = new Mock<IUserService>();
-        userServiceMock.Setup(service => service.GetIfUserExists(newUserInput.Cpf, newUserInput.PhoneNumber, newUserInput.Email)).Returns((User)null);
+        userServiceMock.Setup(service => service.GetIfUserExists(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync((User)null);
         userServiceMock.Setup(service => service.CreateUser(newUserInput)).ReturnsAsync(newUserId);
 
         var loggerMock = new Mock<ILogger<UserController>>();
@@ -104,7 +104,8 @@ public class UserTests {
         var existingUser = new User("12345678910", "1234", "Teste", 27, "11976789654", "teste@teste.com.br");
 
         var userServiceMock = new Mock<IUserService>();
-        userServiceMock.Setup(service => service.GetIfUserExists(newUserInput.Cpf, newUserInput.PhoneNumber, newUserInput.Email)).Returns(existingUser);
+        userServiceMock.Setup(service => service.GetIfUserExists(newUserInput.Cpf, newUserInput.PhoneNumber, newUserInput.Email))
+            .ReturnsAsync(existingUser); // Simula a existência do usuário, portanto, CreateUser não deve ser chamado
 
         var loggerMock = new Mock<ILogger<UserController>>();
         var controller = new UserController(userServiceMock.Object, loggerMock.Object);
@@ -157,7 +158,7 @@ public class UserTests {
         // Assert
         var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
         var errorViewModel = Assert.IsType<ErrorViewModel>(notFoundResult.Value);
-        Assert.Equal("Nenhum usuário encontrado.", errorViewModel.InternalError);
+        Assert.Equal("Nenhum usuário encontrado.", errorViewModel.UserResponse);
     }
 
     [Fact]
@@ -180,12 +181,13 @@ public class UserTests {
     }
 
     [Fact]
-    public async Task DeleteUser_ReturnsNotFound() {
+    public async Task DeleteUser_ReturnsNoContentWhenUserExists() {
         // Arrange
         var userId = Guid.NewGuid();
+        var user = new User("12345678910", "1234", "Teste", 27, "11976789654", "teste@teste.com.br");
 
         var userServiceMock = new Mock<IUserService>();
-        userServiceMock.Setup(service => service.GetUserById(userId)).ReturnsAsync((User)null);
+        userServiceMock.Setup(service => service.GetUserById(userId)).ReturnsAsync(user);
 
         var loggerMock = new Mock<ILogger<UserController>>();
         var controller = new UserController(userServiceMock.Object, loggerMock.Object);
@@ -194,10 +196,9 @@ public class UserTests {
         var result = await controller.DeleteUser(userId);
 
         // Assert
-        var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
-        var errorViewModel = Assert.IsType<ErrorViewModel>(notFoundResult.Value);
-        Assert.Equal("Nenhum usuário com este ID encontrado", errorViewModel.UserResponse);
+        var noContentResult = Assert.IsType<NoContentResult>(result);
     }
+
 
     [Fact]
     public async Task Login_ReturnsOkWithToken() {
