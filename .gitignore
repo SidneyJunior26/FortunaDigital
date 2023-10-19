@@ -9,6 +9,7 @@
 *.userosscache
 *.sln.docstates
 *.angular
+*.DS_Store
 Appsettings.json
 Appsettings.*.json
 
